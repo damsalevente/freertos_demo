@@ -520,18 +520,19 @@ void StartTask02(void *argument)
   /* Infinite loop */
   for(;;)
   {
-   uint8_t curval;
-   xQueueReceive(myQueue01Handle, &curval, 100); /* wait for 100 ticks */
+   uint8_t curval = 0;
+   xQueueReceive(myQueue01Handle, &curval, portMAX_DELAY); /* wait for 100 ticks */
    if (curval > 10)
    {
 	  /* notify Task3 that an alarm has been issued */
 	  xTaskNotifyGive(myTask03Handle);
+
    }
    else
    {
 	   /* misra empty */
    }
-    osDelay(10);
+    //osDelay(2);
   }
   /* USER CODE END StartTask02 */
 }
@@ -549,10 +550,12 @@ void StartTask03(void *argument)
   /* Infinite loop */
   for(;;)
   {
-	/* this task can handle something, when the alarm went off */
-	ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-    osDelay(1);
+	/* this handles when the alarm went off */
+	if (ulTaskNotifyTake(pdTRUE, portMAX_DELAY))
+	{
+		HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+	}
+	osDelay(5);
   }
   /* USER CODE END StartTask03 */
 }
