@@ -24,7 +24,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "queue.h"
+#include "task.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -201,6 +202,7 @@ int main(void)
   /* Create the event(s) */
   /* creation of myEvent01 */
   myEvent01Handle = osEventFlagsNew(&myEvent01_attributes);
+
   /* creation of myEvent02 */
   myEvent02Handle = osEventFlagsNew(&myEvent02_attributes);
 
@@ -453,20 +455,33 @@ static void MX_GPIO_Init(void)
   GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
-  /*Configure GPIO pin : PC3 */
-  GPIO_InitStruct.Pin = GPIO_PIN_3;
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+
+  /*Configure GPIO pins : PC13 PC3 */
+  GPIO_InitStruct.Pin = GPIO_PIN_13|GPIO_PIN_3;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : PA5 */
+  GPIO_InitStruct.Pin = GPIO_PIN_5;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI3_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(EXTI3_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 }
 
@@ -505,7 +520,18 @@ void StartTask02(void *argument)
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+   uint8_t curval;
+   xQueueReceive(myQueue01Handle, &curval, 100); /* wait for 100 ticks */
+   if (curval > 10)
+   {
+	  /* notify Task3 that an alarm has been issued */
+	  xTaskNotifyGive(myTask03Handle);
+   }
+   else
+   {
+	   /* misra empty */
+   }
+    osDelay(10);
   }
   /* USER CODE END StartTask02 */
 }
@@ -523,6 +549,9 @@ void StartTask03(void *argument)
   /* Infinite loop */
   for(;;)
   {
+	/* this task can handle something, when the alarm went off */
+	ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
     osDelay(1);
   }
   /* USER CODE END StartTask03 */
@@ -536,7 +565,7 @@ void Callback01(void *argument)
   /* USER CODE END Callback01 */
 }
 
- /**
+/**
   * @brief  Period elapsed callback in non blocking mode
   * @note   This function is called  when TIM2 interrupt took place, inside
   * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment

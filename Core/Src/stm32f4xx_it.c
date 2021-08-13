@@ -267,6 +267,29 @@ void SPI1_IRQHandler(void)
   /* USER CODE END SPI1_IRQn 1 */
 }
 
+/**
+  * @brief This function handles EXTI line[15:10] interrupts.
+  */
+void EXTI15_10_IRQHandler(void)
+{
+  /* USER CODE BEGIN EXTI15_10_IRQn 0 */
+	  static uint8_t counter = 0x00;
+	  BaseType_t xHigherPriorityTaskWoken;
+	  /* At the start of the ISR, we haven't woken a task */
+	  xHigherPriorityTaskWoken = pdFALSE;
+	  /* increment counter and send to queue */
+	  counter ++;
+	  /* send to the queue */
+	  xQueueSendToFrontFromISR(myQueue01Handle, &counter, &xHigherPriorityTaskWoken );
+	  portEND_SWITCHING_ISR( xHigherPriorityTaskWoken );
+  /* USER CODE END EXTI15_10_IRQn 0 */
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_13);
+  /* USER CODE BEGIN EXTI15_10_IRQn 1 */
+
+
+  /* USER CODE END EXTI15_10_IRQn 1 */
+}
+
 /* USER CODE BEGIN 1 */
 
 /* USER CODE END 1 */
